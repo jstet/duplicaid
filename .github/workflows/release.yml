@@ -83,12 +83,12 @@ jobs:
         if: steps.check.outputs.release == 'true'
         run: uv build
 
-      - name: Create GitHub release
+      - name: Create GitHub release (use the git tag made by cz bump)
         if: steps.check.outputs.release == 'true'
         run: |
-          NEW_VERSION=$(uv version)
-          gh release create "v${NEW_VERSION}" \
-            --title "Release v${NEW_VERSION}" \
+          TAG=$(git describe --tags --abbrev=0)
+          gh release create "$TAG" \
+            --title "Release $TAG" \
             --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
