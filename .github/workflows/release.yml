@@ -78,12 +78,21 @@ jobs:
       - name: Bump version and create changelog
         if: steps.check.outputs.release == 'true'
         run: |
-          # Delete existing tag if it exists (both local and remote)
-          TAG=$(uv run cz bump --changelog --dry-run --yes | grep "tag to create:" | cut -d' ' -f4)
+          # Get the version that would be created
+          BUMP_OUTPUT=$(uv run cz bump --changelog --dry-run --yes 2>&1)
+          echo "Bump output: $BUMP_OUTPUT"
+
+          # Extract tag from various possible formats
+          TAG=$(echo "$BUMP_OUTPUT" | grep -E "(tag to create:|would create tag)" | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+
           if [ ! -z "$TAG" ]; then
+            echo "Would create tag: $TAG"
+            # Delete existing tag if it exists (both local and remote)
             git tag -d "$TAG" 2>/dev/null || true
             git push origin ":refs/tags/$TAG" 2>/dev/null || true
+            echo "Cleaned up existing tag: $TAG"
           fi
+
           # Now create the version bump and tag
           uv run cz bump --changelog --yes
 
