@@ -1,0 +1,62 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v1
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Run tests
+        run: uv run pytest --cov=duplicaid
+      - name: Lint
+        run: uv run ruff check src/
+      - name: Format check
+        run: uv run black --check src/
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/setup-uv@v1
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Semantic Release
+        run: |
+          # Check if version should be bumped
+          if uv run cz bump --check-consistency --dry-run; then
+            # Bump version and create changelog
+            uv run cz bump --changelog
+
+            # Get new version
+            NEW_VERSION=$(uv version)
+
+            # Build package
+            uv build
+
+            # Create GitHub release
+            gh release create "v${NEW_VERSION}" \
+              --title "Release v${NEW_VERSION}" \
+              --notes-from-tag \
+              --generate-notes
+
+            # Publish to PyPI
+            uv publish
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}

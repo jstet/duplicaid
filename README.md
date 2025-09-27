@@ -341,31 +341,100 @@ make test-integration
 make clean
 ```
 
-### Version Management
+### Automated Development Workflow
+
+This project uses semantic commits and automated versioning for consistent releases.
+
+#### 1. Semantic Commits
+
+Use conventional commit format to automatically determine version bumps:
+
+```bash
+# Patch version (0.1.0 → 0.1.1)
+git commit -m "fix: resolve backup timeout issue"
+git commit -m "perf: improve backup compression speed"
+
+# Minor version (0.1.0 → 0.2.0)
+git commit -m "feat: add logical backup scheduling"
+
+# Major version (0.1.0 → 1.0.0)
+git commit -m "feat!: redesign backup API"
+```
+
+#### 2. Development Commands
+
+```bash
+# Interactive commit with conventional format
+make commit
+
+# Manual version bumps
+make bump-patch    # Bug fixes
+make bump-minor    # New features
+make bump-major    # Breaking changes
+
+# Full release process
+make release       # Runs tests, bumps version, builds, publishes
+```
+
+
+#### 4. Automated Workflow
+
+- **Feature Branches**: Work in isolation with semantic commits
+- **Pull Requests**: Automatically run tests, linting, and formatting checks
+- **Main Branch**: Protected, automatic releases based on semantic commits
+- **PyPI Publishing**: Fully automated - no manual uploads
+- **Pre-commit Hooks**: Enforce commit format, code quality, and tests
+- **GitHub Actions**: Handle building, tagging, and PyPI publishing
+
+#### 5. Manual Version Management
 
 ```bash
 # Show current version
 uv version
 
-# Bump patch version (0.1.0 → 0.1.1)
-uv version --bump patch
+# Check what would be bumped
+uv run cz bump --dry-run
 
-# Bump minor version (0.1.0 → 0.2.0)
-uv version --bump minor
-
-# Bump major version (0.1.0 → 1.0.0)
-uv version --bump major
-
-# Set specific version
-uv version 1.2.3
+# Manual bump with changelog
+uv run cz bump --changelog
 ```
+
+### Repository Setup
+
+#### GitHub Branch Protection
+
+To enable the automated workflow, configure these branch protection rules for `main`:
+
+1. **Go to Settings → Branches → Add rule**
+2. **Branch name pattern**: `main`
+3. **Enable these settings**:
+   - ✅ Require a pull request before merging
+   - ✅ Require status checks to pass before merging
+   - ✅ Require branches to be up to date before merging
+   - ✅ Require linear history
+   - ✅ Do not allow bypassing the above settings
+
+#### Required Secrets
+
+Add these secrets in **Settings → Secrets and variables → Actions**:
+- `PYPI_TOKEN`: Your PyPI API token for automated publishing
+
+#### Workflow Triggers
+
+- **Pull Requests**: Run tests, linting, formatting checks
+- **Push to main**: Automatic version bump and PyPI release (if needed)
+- **Manual**: Use `make release` for local releases
 
 ### Building and Publishing
 
 ```bash
-# Build package
+# Manual build (for testing)
 uv build
 
-# Publish to PyPI (requires API token)
+# Automated publishing (via GitHub Actions)
+# → Happens automatically on main branch pushes
+# → No manual PyPI uploads needed
+
+# Emergency manual publish (not recommended)
 uv publish
 ```

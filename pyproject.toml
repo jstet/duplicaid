@@ -26,6 +26,7 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "pre-commit>=3.0.0",
+    "commitizen>=3.13.0",
 ]
 
 [tool.black]
@@ -51,6 +52,14 @@ markers = [
     "integration: marks tests as integration tests (may be slow)",
     "unit: marks tests as unit tests",
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "semver"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = false
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/duplicaid"]
