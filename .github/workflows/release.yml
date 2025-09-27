@@ -47,6 +47,9 @@ jobs:
     needs: [changes, test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && (needs.test.result == 'success' || (needs.test.result == 'skipped' && needs.changes.outputs.docs-only == 'true'))
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,30 +61,36 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Semantic Release
+      - name: Check if release needed
+        id: check
         run: |
-          # Check if version should be bumped
           if uv run cz bump --check-consistency --dry-run; then
-            # Bump version and create changelog
-            uv run cz bump --changelog
-
-            # Get new version
-            NEW_VERSION=$(uv version)
-
-            # Build package
-            uv build
-
-            # Create GitHub release
-            gh release create "v${NEW_VERSION}" \
-              --title "Release v${NEW_VERSION}" \
-              --notes-from-tag \
-              --generate-notes
+            echo "release=true" >> $GITHUB_OUTPUT
+          else
+            echo "release=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Bump version and create changelog
+        if: steps.check.outputs.release == 'true'
+        run: uv run cz bump --changelog
+
+      - name: Build package
+        if: steps.check.outputs.release == 'true'
+        run: uv build
+
+      - name: Create GitHub release
+        if: steps.check.outputs.release == 'true'
+        run: |
+          NEW_VERSION=$(uv version)
+          gh release create "v${NEW_VERSION}" \
+            --title "Release v${NEW_VERSION}" \
+            --notes-from-tag \
+            --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to PyPI
-        if: success()
+        if: steps.check.outputs.release == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
