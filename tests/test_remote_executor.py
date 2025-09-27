@@ -66,6 +66,16 @@ def test_remote_executor_connection_error(mock_ssh_client, remote_config):
 
 @patch("os.path.exists", return_value=True)
 def test_remote_executor_file_exists(mock_exists, mock_ssh_client, remote_config):
+    mock_stdout = Mock()
+    mock_stdout.read.return_value = b""
+    mock_stderr = Mock()
+    mock_stderr.read.return_value = b""
+    mock_ssh_client.return_value.exec_command.return_value = (
+        None,
+        mock_stdout,
+        mock_stderr,
+    )
+
     mock_sftp = Mock()
     mock_ssh_client.return_value.open_sftp.return_value = mock_sftp
     mock_sftp.stat.return_value = True
@@ -78,6 +88,16 @@ def test_remote_executor_file_exists(mock_exists, mock_ssh_client, remote_config
 
 @patch("os.path.exists", return_value=True)
 def test_remote_executor_file_not_exists(mock_exists, mock_ssh_client, remote_config):
+    mock_stdout = Mock()
+    mock_stdout.read.return_value = b""
+    mock_stderr = Mock()
+    mock_stderr.read.return_value = b""
+    mock_ssh_client.return_value.exec_command.return_value = (
+        None,
+        mock_stdout,
+        mock_stderr,
+    )
+
     mock_sftp = Mock()
     mock_ssh_client.return_value.open_sftp.return_value = mock_sftp
     mock_sftp.stat.side_effect = FileNotFoundError()
