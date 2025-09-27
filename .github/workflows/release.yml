@@ -64,7 +64,7 @@ jobs:
       - name: Check if release needed
         id: check
         run: |
-          if uv run cz bump --check-consistency --dry-run; then
+          if uv run cz bump --check-consistency --dry-run --yes; then
             echo "release=true" >> $GITHUB_OUTPUT
           else
             echo "release=false" >> $GITHUB_OUTPUT
@@ -72,7 +72,7 @@ jobs:
 
       - name: Bump version and create changelog
         if: steps.check.outputs.release == 'true'
-        run: uv run cz bump --changelog
+        run: uv run cz bump --changelog --yes
 
       - name: Build package
         if: steps.check.outputs.release == 'true'
