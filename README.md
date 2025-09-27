@@ -341,89 +341,42 @@ make test-integration
 make clean
 ```
 
-### Automated Development Workflow
+### Development Workflow
 
-This project uses semantic commits and automated versioning for consistent releases.
+This project uses automated releases with semantic commits.
 
-#### 1. Semantic Commits
-
-Use conventional commit format to automatically determine version bumps:
-
+#### Quick Start
 ```bash
-# Patch version (0.1.0 → 0.1.1)
-git commit -m "fix: resolve backup timeout issue"
-git commit -m "perf: improve backup compression speed"
+# 1. Create feature branch
+git checkout -b feat/new-feature
 
-# Minor version (0.1.0 → 0.2.0)
-git commit -m "feat: add logical backup scheduling"
+# 2. Make changes and commit
+make commit  # Interactive semantic commit
 
-# Major version (0.1.0 → 1.0.0)
-git commit -m "feat!: redesign backup API"
+# 3. Push and create PR
+git push origin feat/new-feature
+
+# 4. Merge PR → Auto-release to PyPI
 ```
 
-#### 2. Development Commands
-
+#### Semantic Commits
 ```bash
-# Interactive commit with conventional format
-make commit
-
-# Manual version bumps
-make bump-patch    # Bug fixes
-make bump-minor    # New features
-make bump-major    # Breaking changes
-
-# Full release process
-make release       # Runs tests, bumps version, builds, publishes
+git commit -m "fix: resolve timeout"      # → patch release
+git commit -m "feat: add encryption"      # → minor release
+git commit -m "feat!: redesign API"       # → major release
 ```
 
-
-#### 4. Automated Workflow
-
-- **Feature Branches**: Work in isolation with semantic commits
-- **Pull Requests**: Automatically run tests, linting, and formatting checks
-- **Main Branch**: Protected, automatic releases based on semantic commits
-- **PyPI Publishing**: Fully automated - no manual uploads
-- **Pre-commit Hooks**: Enforce commit format, code quality, and tests
-- **GitHub Actions**: Handle building, tagging, and PyPI publishing
-
-#### 5. Manual Version Management
-
+#### Commands
 ```bash
-# Show current version
-uv version
-
-# Check what would be bumped
-uv run cz bump --dry-run
-
-# Manual bump with changelog
-uv run cz bump --changelog
+make commit       # Interactive semantic commit
+make bump-patch   # Manual version bump
+make release      # Full release process
 ```
 
-### Repository Setup
-
-#### GitHub Branch Protection
-
-To enable the automated workflow, configure these branch protection rules for `main`:
-
-1. **Go to Settings → Branches → Add rule**
-2. **Branch name pattern**: `main`
-3. **Enable these settings**:
-   - ✅ Require a pull request before merging
-   - ✅ Require status checks to pass before merging
-   - ✅ Require branches to be up to date before merging
-   - ✅ Require linear history
-   - ✅ Do not allow bypassing the above settings
-
-#### Required Secrets
-
-Add these secrets in **Settings → Secrets and variables → Actions**:
-- `PYPI_TOKEN`: Your PyPI API token for automated publishing
-
-#### Workflow Triggers
-
-- **Pull Requests**: Run tests, linting, formatting checks
-- **Push to main**: Automatic version bump and PyPI release (if needed)
-- **Manual**: Use `make release` for local releases
+#### Automation
+- **PRs**: Auto-test, lint, format
+- **Main branch**: Auto-version, auto-publish to PyPI
+- **Pre-commit**: Enforce quality and commit format
 
 ### Building and Publishing
 
