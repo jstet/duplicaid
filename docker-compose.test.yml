@@ -1,0 +1,128 @@
+services:
+  postgres:
+    image: lafayettegabe/wald:latest
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpassword
+      WALG_S3_PREFIX: s3://test-bucket
+      WALG_LIBSODIUM_KEY: "test-encryption-key-32-characters!"
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_ENDPOINT: http://minio:9000
+      AWS_S3_FORCE_PATH_STYLE: "true"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - walgdata:/var/log/wal-g
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  db-backup:
+    container_name: db-backup
+    image: ghcr.io/tiredofit/docker-db-backup:4.1.21
+    volumes:
+      - backups:/backup
+    environment:
+      TIMEZONE: UTC
+      CONTAINER_ENABLE_MONITORING: "FALSE"
+      BACKUP_JOB_CONCURRENCY: 1
+      DEBUG_MODE: "TRUE"
+
+      DB01_TYPE: postgres
+      DB01_HOST: postgres
+      DB01_NAME: postgres
+      DB01_USER: postgres
+      DB01_PASS: testpassword
+      DB01_BACKUP_INTERVAL: 0
+      DB01_CLEANUP_TIME: 1440
+      DB01_CHECKSUM: MD5
+      DB01_COMPRESSION: BZ
+      DB01_BACKUP_LOCATION: s3
+      DB01_S3_HOST: minio:9000
+      DB01_S3_BUCKET: test-bucket
+      DB01_S3_KEY_ID: minioadmin
+      DB01_S3_KEY_SECRET: minioadmin
+      DB01_S3_PATH: logical-backup
+      DB01_S3_PROTOCOL: http
+
+      DB02_TYPE: postgres
+      DB02_HOST: postgres
+      DB02_NAME: testdb1
+      DB02_USER: postgres
+      DB02_PASS: testpassword
+      DB02_BACKUP_INTERVAL: 0
+      DB02_CLEANUP_TIME: 1440
+      DB02_CHECKSUM: MD5
+      DB02_COMPRESSION: BZ
+      DB02_BACKUP_LOCATION: s3
+      DB02_S3_HOST: minio:9000
+      DB02_S3_BUCKET: test-bucket
+      DB02_S3_KEY_ID: minioadmin
+      DB02_S3_KEY_SECRET: minioadmin
+      DB02_S3_PATH: logical-backup
+      DB02_S3_PROTOCOL: http
+
+    networks:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    hostname: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - postgres
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - postgres
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/test-bucket;
+      /usr/bin/mc policy set public myminio/test-bucket;
+      exit 0;
+      "
+
+volumes:
+  postgres_data:
+  walgdata:
+  backups:
+  minio_data:
+
+networks:
+  postgres:
