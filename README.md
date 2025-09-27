@@ -1,5 +1,11 @@
 # DuplicAid
 
+[![PyPI version](https://badge.fury.io/py/duplicaid.svg)](https://badge.fury.io/py/duplicaid)
+[![Tests](https://github.com/jstet/duplicaid/workflows/Release/badge.svg)](https://github.com/jstet/duplicaid/actions)
+[![Python versions](https://img.shields.io/pypi/pyversions/duplicaid.svg)](https://pypi.org/project/duplicaid/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 DuplicAid is a CLI tool for managing PostgreSQL backups via WAL-G (point-in-time recovery) and logical dumps. It provides a unified interface for creating, listing, and restoring backups from PostgreSQL instances running in Docker containers.
 
 ⚠️ The package depends on the image `lafayettegabe/wald`, which is a PostgreSQL container with WAL-G support and `tiredofit/docker-db-backup:4.1.21` for logical backups.
