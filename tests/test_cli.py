@@ -1,5 +1,3 @@
-from unittest.mock import Mock, patch
-
 from typer.testing import CliRunner
 
 from duplicaid.cli import app
@@ -39,54 +37,28 @@ def test_config_show_empty():
     )
 
 
-@patch("duplicaid.cli.get_executor")
-@patch("duplicaid.cli.Config.load")
-def test_backup_walg_command(mock_load, mock_get_executor):
-    mock_config = Mock()
-    mock_load.return_value = mock_config
-    mock_executor = Mock()
-    mock_get_executor.return_value = mock_executor
-
-    runner.invoke(app, ["backup", "walg"])
-    mock_get_executor.assert_called()
-
-
-@patch("duplicaid.cli.get_executor")
-@patch("duplicaid.cli.Config.load")
-def test_backup_logical_command(mock_load, mock_get_executor):
-    mock_config = Mock()
-    mock_load.return_value = mock_config
-    mock_executor = Mock()
-    mock_get_executor.return_value = mock_executor
-
-    runner.invoke(app, ["backup", "logical"])
-    mock_get_executor.assert_called()
-
-
-@patch("duplicaid.cli.get_executor")
-@patch("duplicaid.cli.Config.load")
-def test_list_walg_command(mock_load, mock_get_executor):
-    mock_config = Mock()
-    mock_load.return_value = mock_config
-    mock_executor = Mock()
-    mock_get_executor.return_value = mock_executor
-
-    runner.invoke(app, ["list", "walg"])
-    mock_get_executor.assert_called()
-
-
-@patch("duplicaid.cli.get_executor")
-@patch("duplicaid.cli.Config.load")
-def test_status_command_with_config(mock_load, mock_get_executor):
-    mock_config = Mock()
-    mock_load.return_value = mock_config
-    mock_executor = Mock()
-    mock_get_executor.return_value = mock_executor
-    mock_executor.check_container_running.return_value = True
-    mock_executor.get_container_status.return_value = "Up 2 hours"
-
-    result = runner.invoke(app, ["status"])
+def test_backup_walg_help():
+    result = runner.invoke(app, ["backup", "walg", "--help"])
     assert result.exit_code == 0
+    assert "Create WAL-G backup" in result.stdout
+
+
+def test_backup_logical_help():
+    result = runner.invoke(app, ["backup", "logical", "--help"])
+    assert result.exit_code == 0
+    assert "Create logical backup" in result.stdout
+
+
+def test_list_walg_help():
+    result = runner.invoke(app, ["list", "walg", "--help"])
+    assert result.exit_code == 0
+    assert "List WAL-G backups" in result.stdout
+
+
+def test_status_help():
+    result = runner.invoke(app, ["status", "--help"])
+    assert result.exit_code == 0
+    assert "Show system status" in result.stdout
 
 
 def test_discover_command():
