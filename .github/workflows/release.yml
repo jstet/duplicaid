@@ -75,17 +75,15 @@ jobs:
             echo "release=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Push version tag
-        if: steps.check.outputs.release == 'true'
-        run: |
-          # pushes the new annotated tag created by `cz bump`
-          git push origin --follow-tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Bump version and create changelog
         if: steps.check.outputs.release == 'true'
         run: uv run cz bump --changelog --yes
+
+      - name: Push version tag
+        if: steps.check.outputs.release == 'true'
+        run: git push origin --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package
         if: steps.check.outputs.release == 'true'
@@ -97,8 +95,7 @@ jobs:
           TAG=$(git describe --tags --abbrev=0)
           gh release create "$TAG" \
             --title "Release $TAG" \
-            --generate-notes \
-            --target main
+            --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
