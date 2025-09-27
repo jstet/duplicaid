@@ -121,8 +121,8 @@ services:
 volumes:
   postgres_data:
   walgdata:
-  backups:
   minio_data:
+  backups:
 
 networks:
   postgres:

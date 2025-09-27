@@ -26,6 +26,14 @@ class LocalExecutor(BaseExecutor):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    def _get_actual_container_name(self, container: str) -> str:
+        """Map logical container name to actual container name from config."""
+        if container == "postgres":
+            return self.config.postgres_container
+        elif container == "backup":
+            return self.config.backup_container
+        return container
+
     def execute(self, command: str, show_command: bool = True) -> Tuple[str, str, int]:
         if show_command:
             console.print(f"[dim]$ {command}[/dim]")
@@ -52,17 +60,19 @@ class LocalExecutor(BaseExecutor):
     def docker_exec(
         self, container: str, command: str, user: Optional[str] = None
     ) -> Tuple[str, str, int]:
+        actual_container_name = self._get_actual_container_name(container)
         docker_command = "docker exec"
         if user:
             docker_command += f" -u {user}"
-        docker_command += f" {container} {command}"
+        docker_command += f" {actual_container_name} {command}"
 
         return self.execute(docker_command)
 
     def docker_exec_interactive(
         self, container: str, command: str, stdin_data: str = None
     ) -> Tuple[str, str, int]:
-        docker_command = f"docker exec -i {container} {command}"
+        actual_container_name = self._get_actual_container_name(container)
+        docker_command = f"docker exec -i {actual_container_name} {command}"
 
         if stdin_data:
             full_command = f"echo '{stdin_data}' | {docker_command}"
@@ -71,16 +81,20 @@ class LocalExecutor(BaseExecutor):
             return self.execute(docker_command)
 
     def check_container_running(self, container: str) -> bool:
+        actual_container_name = self._get_actual_container_name(container)
+
         stdout, stderr, exit_code = self.execute(
-            f"docker ps --filter name={container} --filter status=running --format '{{{{.Names}}}}'",
+            f"docker ps --filter name={actual_container_name} --filter status=running --format '{{{{.Names}}}}'",
             show_command=False,
         )
 
-        return container in stdout.split("\n")
+        return actual_container_name in stdout.split("\n")
 
     def get_container_status(self, container: str) -> Optional[str]:
+        actual_container_name = self._get_actual_container_name(container)
+
         stdout, stderr, exit_code = self.execute(
-            f"docker ps -a --filter name={container} --format '{{{{.Status}}}}'",
+            f"docker ps -a --filter name={actual_container_name} --format '{{{{.Status}}}}'",
             show_command=False,
         )
 
