@@ -40,19 +40,19 @@ def test_config_show_empty():
 def test_backup_walg_help():
     result = runner.invoke(app, ["backup", "walg", "--help"])
     assert result.exit_code == 0
-    assert "Create WAL-G backup" in result.stdout
+    assert "Create a WAL-G backup" in result.stdout
 
 
 def test_backup_logical_help():
     result = runner.invoke(app, ["backup", "logical", "--help"])
     assert result.exit_code == 0
-    assert "Create logical backup" in result.stdout
+    assert "Create a logical backup" in result.stdout
 
 
 def test_list_walg_help():
     result = runner.invoke(app, ["list", "walg", "--help"])
     assert result.exit_code == 0
-    assert "List WAL-G backups" in result.stdout
+    assert "List available WAL-G backups" in result.stdout
 
 
 def test_status_help():
@@ -61,7 +61,7 @@ def test_status_help():
     assert "Show system status" in result.stdout
 
 
-def test_discover_command():
-    result = runner.invoke(app, ["discover", "--help"])
+def test_restore_commands():
+    result = runner.invoke(app, ["restore", "--help"])
     assert result.exit_code == 0
-    assert "Discover databases" in result.stdout
+    assert "Restore from backups" in result.stdout
