@@ -95,9 +95,11 @@ jobs:
           TAG=$(git describe --tags --abbrev=0)
           gh release create "$TAG" \
             --title "Release $TAG" \
-            --generate-notes
+            --generate-notes \
+            --target main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Publish to PyPI
         if: steps.check.outputs.release == 'true'
