@@ -75,10 +75,12 @@ jobs:
               --title "Release v${NEW_VERSION}" \
               --notes-from-tag \
               --generate-notes
-
-            # Publish to PyPI
-            uv publish
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish to PyPI
+        if: success()
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
