@@ -55,9 +55,7 @@ class LocalExecutor(BaseExecutor):
         actual_container_name = (
             self.config.postgres_container
             if container == "postgres"
-            else self.config.backup_container
-            if container == "backup"
-            else container
+            else self.config.backup_container if container == "backup" else container
         )
         docker_command = "docker exec"
         if user:
@@ -72,9 +70,7 @@ class LocalExecutor(BaseExecutor):
         actual_container_name = (
             self.config.postgres_container
             if container == "postgres"
-            else self.config.backup_container
-            if container == "backup"
-            else container
+            else self.config.backup_container if container == "backup" else container
         )
         docker_command = f"docker exec -i {actual_container_name} {command}"
 
@@ -88,9 +84,7 @@ class LocalExecutor(BaseExecutor):
         actual_container_name = (
             self.config.postgres_container
             if container == "postgres"
-            else self.config.backup_container
-            if container == "backup"
-            else container
+            else self.config.backup_container if container == "backup" else container
         )
 
         stdout, stderr, exit_code = self.execute(
@@ -104,9 +98,7 @@ class LocalExecutor(BaseExecutor):
         actual_container_name = (
             self.config.postgres_container
             if container == "postgres"
-            else self.config.backup_container
-            if container == "backup"
-            else container
+            else self.config.backup_container if container == "backup" else container
         )
 
         stdout, stderr, exit_code = self.execute(
