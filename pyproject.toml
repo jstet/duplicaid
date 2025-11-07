@@ -1,7 +1,7 @@
 [project]
 name = "duplicaid"
 version = "0.4.0"
-description = "CLI tool for managing PostgreSQL backups via WAL-G and logical dumps"
+description = "CLI tool for managing PostgreSQL backups via WAL-G and logical dumps with configurable database connections"
 readme = "README.md"
 authors = [
     { name = "jstet", email = "mail@jstet.net" }
