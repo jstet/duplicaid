@@ -98,6 +98,31 @@ class Config:
         """Get PostgreSQL password."""
         return self._data.get("postgres", {}).get("password")
 
+    @property
+    def s3_endpoint(self) -> Optional[str]:
+        """Get S3 endpoint URL."""
+        return self._data.get("s3", {}).get("endpoint")
+
+    @property
+    def s3_bucket(self) -> Optional[str]:
+        """Get S3 bucket name."""
+        return self._data.get("s3", {}).get("bucket")
+
+    @property
+    def s3_access_key(self) -> Optional[str]:
+        """Get S3 access key."""
+        return self._data.get("s3", {}).get("access_key")
+
+    @property
+    def s3_secret_key(self) -> Optional[str]:
+        """Get S3 secret key."""
+        return self._data.get("s3", {}).get("secret_key")
+
+    @property
+    def s3_path(self) -> str:
+        """Get S3 path for logical backups."""
+        return self._data.get("s3", {}).get("path", "backups/logical")
+
     def init_config(self) -> None:
         """Initialize configuration interactively."""
         console.print("[bold blue]DuplicAid Configuration Setup[/bold blue]")

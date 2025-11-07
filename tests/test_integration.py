@@ -54,3 +54,46 @@ def test_database_creation(test_services, local_executor, postgres_ready):
         "postgres", "psql -U postgres -c 'DROP DATABASE test_integration;'"
     )
     assert exit_code == 0
+
+
+@pytest.mark.integration
+def test_logical_backup_list(test_services, local_executor):
+    logical_manager = LogicalBackupManager(local_executor.config)
+    backups = logical_manager.list_backups(local_executor)
+    assert isinstance(backups, list)
+
+
+@pytest.mark.integration
+def test_s3_backup_listing(test_services, local_executor):
+    from minio import Minio
+
+    client = Minio(
+        "localhost:9000",
+        access_key="minioadmin",
+        secret_key="minioadmin",
+        secure=False,
+    )
+
+    test_content = b"test backup content"
+    test_filename = "postgres_20241107_120000.sql.bz2"
+    test_path = f"test/logical/{test_filename}"
+
+    from io import BytesIO
+
+    client.put_object(
+        "test-bucket",
+        test_path,
+        BytesIO(test_content),
+        len(test_content),
+    )
+
+    logical_manager = LogicalBackupManager(local_executor.config)
+    backups = logical_manager.list_backups(local_executor)
+
+    assert isinstance(backups, list)
+    assert len(backups) >= 1
+
+    backup_names = [b.name for b in backups]
+    assert test_filename in backup_names
+
+    client.remove_object("test-bucket", test_path)

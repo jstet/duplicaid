@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from minio import Minio
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -339,7 +340,7 @@ class LogicalBackupManager:
 
     def list_backups(self, executor: RemoteExecutor) -> List[BackupInfo]:
         """
-        List available logical backups.
+        List available logical backups from S3.
 
         Args:
             executor: SSH executor instance
@@ -347,6 +348,61 @@ class LogicalBackupManager:
         Returns:
             List of BackupInfo objects
         """
+        if not self.config.s3_endpoint or not self.config.s3_bucket:
+            console.print(
+                "[yellow]S3 not configured, listing local backups...[/yellow]"
+            )
+            return self._list_local_backups(executor)
+
+        try:
+            endpoint = self.config.s3_endpoint.replace("http://", "").replace(
+                "https://", ""
+            )
+            secure = self.config.s3_endpoint.startswith("https://")
+
+            client = Minio(
+                endpoint,
+                access_key=self.config.s3_access_key,
+                secret_key=self.config.s3_secret_key,
+                secure=secure,
+            )
+
+            backups = []
+            objects = client.list_objects(
+                self.config.s3_bucket, prefix=self.config.s3_path, recursive=True
+            )
+
+            for obj in objects:
+                if any(ext in obj.object_name for ext in [".sql", ".bz2", ".gz"]):
+                    filename = obj.object_name.split("/")[-1]
+                    match = re.search(r"(\w+)_(\d{8}[_-]\d{6})", filename)
+                    if match:
+                        database = match.group(1)
+                        timestamp_str = match.group(2).replace("-", "_")
+                        try:
+                            timestamp = datetime.strptime(
+                                timestamp_str, "%Y%m%d_%H%M%S"
+                            )
+                            backups.append(
+                                BackupInfo(
+                                    name=filename,
+                                    timestamp=timestamp,
+                                    type="logical",
+                                    database=database,
+                                    size=obj.size,
+                                )
+                            )
+                        except ValueError:
+                            continue
+
+            return sorted(backups, key=lambda x: x.timestamp, reverse=True)
+
+        except Exception as e:
+            console.print(f"[red]Failed to list S3 backups: {e}[/red]")
+            return []
+
+    def _list_local_backups(self, executor: RemoteExecutor) -> List[BackupInfo]:
+        """List backups from local /backup directory."""
         if not executor.check_container_running(self.config.backup_container):
             console.print(
                 f"[red]Backup container '{self.config.backup_container}' is not running[/red]"
@@ -355,11 +411,11 @@ class LogicalBackupManager:
 
         try:
             stdout, stderr, exit_code = executor.docker_exec(
-                self.config.backup_container, "backup-list"
+                self.config.backup_container, "ls -1 /backup"
             )
 
             if exit_code != 0:
-                console.print("[red]Failed to list logical backups[/red]")
+                console.print("[red]Failed to list local backups[/red]")
                 if stderr:
                     console.print(f"[red]Error: {stderr}[/red]")
                 return []
@@ -367,7 +423,7 @@ class LogicalBackupManager:
             return self._parse_logical_backup_list(stdout)
 
         except SSHError as e:
-            console.print(f"[red]Failed to list logical backups: {e}[/red]")
+            console.print(f"[red]Failed to list local backups: {e}[/red]")
             return []
 
     def _parse_logical_backup_list(self, output: str) -> List[BackupInfo]:

@@ -47,6 +47,14 @@ def test_config(docker_compose_file):
         "containers": {"postgres": "postgres", "backup": "db-backup"},
         "paths": {"docker_compose": str(docker_compose_file)},
         "databases": ["testdb1", "testdb2"],
+        "postgres": {"user": "postgres", "password": "testpassword"},
+        "s3": {
+            "endpoint": "http://localhost:9000",
+            "bucket": "test-bucket",
+            "access_key": "minioadmin",
+            "secret_key": "minioadmin",
+            "path": "test/logical",
+        },
     }
     return config
 
