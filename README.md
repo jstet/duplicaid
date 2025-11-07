@@ -17,8 +17,6 @@ The tool supports both local and remote execution modes.
 - **WAL-G Integration**: Create and restore point-in-time backups using WAL-G
 - **Logical Backups**: Create and restore database dumps via tiredofit/db-backup or pg_dump
 - **Dual Execution Modes**: Manage backups locally or on remote servers via SSH
-- **Rich CLI Interface**: Beautiful command-line interface with progress indicators and tables
-- **Configuration Management**: Easy setup and management of connection settings
 
 ## Installation
 
@@ -63,6 +61,7 @@ duplicaid config init
 - **Execution Mode**: `remote` or `local`
 - **Remote Server** (remote mode only): SSH connection details (host, user, port, key path)
 - **Container Names**: PostgreSQL and backup container names
+- **PostgreSQL Credentials**: Database user and password
 - **Paths**: Docker Compose file location
 - **Databases**: List of databases to manage
 
@@ -79,6 +78,9 @@ remote:
 containers:
   postgres: postgres
   backup: db-backup
+postgres:
+  user: postgres
+  password: your_secure_password
 paths:
   docker_compose: /home/correlaid/postgres/docker-compose.yml
 databases:
@@ -92,6 +94,9 @@ execution_mode: local
 containers:
   postgres: postgres
   backup: db-backup
+postgres:
+  user: postgres
+  password: your_secure_password
 paths:
   docker_compose: /home/user/postgres/docker-compose.yml
 databases:
