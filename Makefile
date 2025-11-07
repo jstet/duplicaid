@@ -1,4 +1,4 @@
-.PHONY: setup-test teardown-test clean test-integration commit bump-patch bump-minor bump-major release
+.PHONY: setup-test teardown-test clean test-integration commit
 
 setup-test:
 	docker compose -f docker-compose.test.yml up -d
@@ -17,19 +17,3 @@ test-integration: setup-test
 
 commit:
 	uv run cz commit
-
-bump-patch:
-	uv run cz bump --increment PATCH
-
-bump-minor:
-	uv run cz bump --increment MINOR
-
-bump-major:
-	uv run cz bump --increment MAJOR
-
-release: test-integration
-	uv run cz bump --changelog
-	uv build
-	git push --follow-tags
-	uv publish
-	gh release create $$(git describe --tags --abbrev=0) --generate-notes

@@ -11,18 +11,13 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      docs-only: ${{ steps.changes.outputs.docs-only }}
+      code: ${{ steps.changes.outputs.code }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
-            docs-only:
-              - '**/*.md'
-              - 'docs/**'
-              - 'tests/**'
-              - 'docker-compose*.yml'
             code:
               - 'src/**'
               - 'pyproject.toml'
@@ -30,7 +25,7 @@ jobs:
 
   test:
     needs: changes
-    if: needs.changes.outputs.docs-only != 'true'
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
