@@ -15,7 +15,7 @@ class Config:
     """Configuration manager for DuplicAid."""
 
     def __init__(self, config_path: Optional[Path] = None):
-        self.config_path = config_path or Path.home() / ".duplicaid" / "config.yml"
+        self.config_path = config_path or Path.cwd() / ".duplicaid.yml"
         self._data = {}
         self.load()
 
@@ -129,10 +129,17 @@ class Config:
         console.print("\n[yellow]Database configuration:[/yellow]")
         databases = []
         while True:
-            db = Prompt.ask("Database name (press Enter to finish)", default="")
+            db = Prompt.ask(
+                "Database name (dont input anything and press Enter to finish)",
+                default="",
+            )
             if not db:
                 break
+            if db in databases:
+                console.print(f"[yellow]'{db}' already added, skipping[/yellow]")
+                continue
             databases.append(db)
+            console.print(f"[green]✓ Added '{db}'[/green]")
 
         if not databases:
             console.print(

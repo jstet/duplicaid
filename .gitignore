@@ -17,3 +17,5 @@ wheels/
 
 .env
 .env.*
+
+.duplicaid.yml

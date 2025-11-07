@@ -1,5 +1,6 @@
 """CLI interface for DuplicAid."""
 
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -33,7 +34,22 @@ app.add_typer(restore_app)
 app.add_typer(list_app)
 
 # Global configuration instance
-config = Config()
+config: Optional[Config] = None
+
+
+@app.callback()
+def main_callback(
+    ctx: typer.Context,
+    config_path: Optional[Path] = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to config file (default: .duplicaid.yml in cwd)",
+    ),
+):
+    """DuplicAid - PostgreSQL backup management CLI."""
+    global config
+    config = Config(config_path)
 
 
 def get_executor():
@@ -78,6 +94,7 @@ def config_show():
     table.add_column("Setting", style="cyan")
     table.add_column("Value", style="green")
 
+    table.add_row("Config File", str(config.config_path))
     table.add_row("Execution Mode", config.execution_mode)
 
     if config.execution_mode == "remote":
@@ -94,6 +111,20 @@ def config_show():
     )
 
     console.print(table)
+
+
+@config_app.command("add-db")
+def config_add_db(database: str = typer.Argument(..., help="Database name to add")):
+    """Add a database to the configuration."""
+    config.add_database(database)
+
+
+@config_app.command("remove-db")
+def config_remove_db(
+    database: str = typer.Argument(..., help="Database name to remove")
+):
+    """Remove a database from the configuration."""
+    config.remove_database(database)
 
 
 # Backup commands

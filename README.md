@@ -36,7 +36,7 @@ uv sync --extra dev
 
 ## Configuration
 
-Duplicaid stores configuration in `~/.duplicaid/config.yml` and supports two execution modes:
+Duplicaid stores configuration in `.duplicaid.yml` in your current working directory by default. You can specify a different location using the `--config` flag.
 
 ### Execution Modes
 
@@ -127,18 +127,23 @@ databases:
 
 ## Commands Reference
 
+All commands support the `--config` flag to specify a custom config file location:
+
+```bash
+duplicaid --config /path/to/config.yml <command>
+```
+
 ### Configuration Management
 
 ```bash
-# Initialize configuration
+# Initialize configuration (creates .duplicaid.yml in current directory)
 duplicaid config init
 
 # Show current configuration
 duplicaid config show
 
-# Add/remove databases
-duplicaid config add-db my_database
-duplicaid config remove-db my_database
+# Use custom config file
+duplicaid --config /path/to/config.yml config show
 ```
 
 ### Backup Operations
