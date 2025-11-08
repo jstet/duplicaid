@@ -1,6 +1,6 @@
 [project]
 name = "duplicaid"
-version = "4.0.0"
+version = "4.0.1"
 description = "CLI tool for managing PostgreSQL backups via WAL-G and logical dumps with configurable database connections"
 readme = "README.md"
 authors = [

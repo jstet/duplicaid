@@ -1,3 +1,9 @@
+## v4.0.1 (2025-11-08)
+
+### Fix
+
+- hide commands and environment variables from output
+
 ## v4.0.0 (2025-11-08)
 
 ### Feat
