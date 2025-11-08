@@ -59,7 +59,10 @@ class Config:
     @property
     def ssh_key_path(self) -> Optional[str]:
         """Get SSH private key path."""
-        return self._data.get("remote", {}).get("ssh_key_path")
+        path = self._data.get("remote", {}).get("ssh_key_path")
+        if path:
+            return os.path.expanduser(path)
+        return path
 
     @property
     def remote_port(self) -> int:

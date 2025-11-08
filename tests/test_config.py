@@ -84,3 +84,22 @@ def test_add_remove_database():
 
     config.remove_database("new_db")
     assert "new_db" not in config.databases
+
+
+def test_ssh_key_path_tilde_expansion():
+    import os
+
+    config = Config()
+    config._data = {
+        "execution_mode": "remote",
+        "remote": {
+            "host": "test.example.com",
+            "user": "testuser",
+            "ssh_key_path": "~/.ssh/id_rsa",
+        },
+    }
+
+    expanded_path = config.ssh_key_path
+    assert expanded_path is not None
+    assert "~" not in expanded_path
+    assert expanded_path.startswith(os.path.expanduser("~"))

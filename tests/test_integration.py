@@ -1,7 +1,9 @@
 import pytest
 from minio import Minio
+from typer.testing import CliRunner
 
 from duplicaid.backup import LogicalBackupManager
+from duplicaid.cli import app
 from duplicaid.discovery import DatabaseDiscovery
 
 
@@ -144,3 +146,63 @@ def test_logical_restore(test_services, local_executor):
         f'psql -U {local_executor.config.postgres_user} -d {database} -t -c "SELECT id FROM restore_check;"',
     )
     assert "42" in stdout.strip()
+
+
+@pytest.mark.integration
+def test_status_with_custom_config(test_services, test_config, tmp_path):
+    runner = CliRunner()
+
+    config_file = tmp_path / "custom_config.yml"
+    test_config.config_path = config_file
+    test_config.save()
+
+    result = runner.invoke(app, ["--config", str(config_file), "status"])
+    assert result.exit_code == 0
+    assert "Container Status" in result.stdout
+
+
+@pytest.mark.integration
+def test_list_backups_with_custom_config(test_services, test_config, tmp_path):
+    runner = CliRunner()
+
+    config_file = tmp_path / "custom_config.yml"
+    test_config.config_path = config_file
+    test_config.save()
+
+    result = runner.invoke(app, ["--config", str(config_file), "list", "backups"])
+    assert result.exit_code == 0
+
+
+@pytest.mark.integration
+def test_list_databases_with_custom_config(test_services, test_config, tmp_path):
+    runner = CliRunner()
+
+    config_file = tmp_path / "custom_config.yml"
+    test_config.config_path = config_file
+    test_config.save()
+
+    result = runner.invoke(app, ["--config", str(config_file), "list", "databases"])
+    assert result.exit_code == 0
+    assert "Available Databases" in result.stdout
+
+
+@pytest.mark.integration
+def test_config_show_with_custom_config(test_config, tmp_path):
+    runner = CliRunner()
+
+    config_file = tmp_path / "custom_config.yml"
+    test_config.config_path = config_file
+    test_config.save()
+
+    result = runner.invoke(app, ["--config", str(config_file), "config", "show"])
+    assert result.exit_code == 0
+    assert "DuplicAid Configuration" in result.stdout
+
+
+@pytest.mark.integration
+def test_nonexistent_config_file():
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["--config", "/nonexistent/config.yml", "status"])
+    assert result.exit_code == 1
+    assert "Configuration not found" in result.stdout
