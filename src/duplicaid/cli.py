@@ -156,7 +156,9 @@ def restore(
     check_config()
 
     if database not in config.databases:
-        console.print(f"[red]Database '{database}' not found in configuration.[/red]")
+        console.print(
+            f"[red]Database '{database}' not found in configuration :(.[/red]"
+        )
         console.print("Available databases:", ", ".join(config.databases))
         raise typer.Exit(1)
 
