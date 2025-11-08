@@ -37,22 +37,10 @@ def test_config_show_empty():
     )
 
 
-def test_backup_walg_help():
-    result = runner.invoke(app, ["backup", "walg", "--help"])
+def test_backup_create_help():
+    result = runner.invoke(app, ["backup", "create", "--help"])
     assert result.exit_code == 0
-    assert "Create a WAL-G backup" in result.stdout
-
-
-def test_backup_logical_help():
-    result = runner.invoke(app, ["backup", "logical", "--help"])
-    assert result.exit_code == 0
-    assert "Create a logical backup" in result.stdout
-
-
-def test_list_walg_help():
-    result = runner.invoke(app, ["list", "walg", "--help"])
-    assert result.exit_code == 0
-    assert "List available WAL-G backups" in result.stdout
+    assert "Create a database backup" in result.stdout
 
 
 def test_status_help():

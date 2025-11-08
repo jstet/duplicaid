@@ -99,6 +99,16 @@ class Config:
         return self._data.get("postgres", {}).get("password")
 
     @property
+    def postgres_host(self) -> Optional[str]:
+
+        return self._data.get("postgres", {}).get("host")
+
+    @property
+    def postgres_port(self) -> Optional[str]:
+
+        return self._data.get("postgres", {}).get("port")
+
+    @property
     def s3_endpoint(self) -> Optional[str]:
         """Get S3 endpoint URL."""
         return self._data.get("s3", {}).get("endpoint")
@@ -110,13 +120,21 @@ class Config:
 
     @property
     def s3_access_key(self) -> Optional[str]:
-        """Get S3 access key."""
-        return self._data.get("s3", {}).get("access_key")
+        """Get S3 access key from config or environment variable."""
+        return (
+            self._data.get("s3", {}).get("access_key")
+            or os.environ.get("AWS_ACCESS_KEY_ID")
+            or os.environ.get("S3_ACCESS_KEY")
+        )
 
     @property
     def s3_secret_key(self) -> Optional[str]:
-        """Get S3 secret key."""
-        return self._data.get("s3", {}).get("secret_key")
+        """Get S3 secret key from config or environment variable."""
+        return (
+            self._data.get("s3", {}).get("secret_key")
+            or os.environ.get("AWS_SECRET_ACCESS_KEY")
+            or os.environ.get("S3_SECRET_KEY")
+        )
 
     @property
     def s3_path(self) -> str:

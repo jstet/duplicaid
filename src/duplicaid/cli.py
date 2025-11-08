@@ -8,7 +8,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from .backup import LogicalBackupManager, WALGBackupManager
+from .backup import LogicalBackupManager
 from .config import Config
 from .discovery import DatabaseDiscovery
 from .executor import ExecutorError
@@ -128,42 +128,15 @@ def config_remove_db(
 
 
 # Backup commands
-@backup_app.command("walg")
-def backup_walg():
-    """Create a WAL-G backup (point-in-time)."""
+@backup_app.command()
+def create():
+    """Create a database backup."""
     check_config()
-
-    try:
-        with get_executor() as executor:
-            walg_manager = WALGBackupManager(config)
-            success = walg_manager.create_backup(executor)
-
-            if not success:
-                raise typer.Exit(1)
-
-    except ExecutorError as e:
-        console.print(f"[red]Executor Error: {e}[/red]")
-        raise typer.Exit(1)
-
-
-@backup_app.command("logical")
-def backup_logical(
-    database: Optional[str] = typer.Option(
-        None, "--db", help="Specific database to backup"
-    ),
-):
-    """Create a logical backup."""
-    check_config()
-
-    if database and database not in config.databases:
-        console.print(f"[red]Database '{database}' not found in configuration.[/red]")
-        console.print("Available databases:", ", ".join(config.databases))
-        raise typer.Exit(1)
 
     try:
         with get_executor() as executor:
             logical_manager = LogicalBackupManager(config)
-            success = logical_manager.create_backup(executor, database)
+            success = logical_manager.create_backup(executor)
 
             if not success:
                 raise typer.Exit(1)
@@ -174,44 +147,12 @@ def backup_logical(
 
 
 # Restore commands
-@restore_app.command("walg")
-def restore_walg(
-    backup_name: str = typer.Option(
-        "LATEST", "--backup", help="Backup name to restore"
-    ),
-    target_time: Optional[str] = typer.Option(
-        None,
-        "--to",
-        help="Target time for point-in-time recovery (YYYY-MM-DD HH:MM:SS)",
-    ),
-):
-    """Restore from WAL-G backup."""
-    check_config()
-
-    # Confirm destructive operation
-    if not typer.confirm("This will destroy current data. Are you sure?"):
-        console.print("[yellow]Operation cancelled.[/yellow]")
-        raise typer.Exit()
-
-    try:
-        with get_executor() as executor:
-            walg_manager = WALGBackupManager(config)
-            success = walg_manager.restore_backup(executor, backup_name, target_time)
-
-            if not success:
-                raise typer.Exit(1)
-
-    except ExecutorError as e:
-        console.print(f"[red]Executor Error: {e}[/red]")
-        raise typer.Exit(1)
-
-
-@restore_app.command("logical")
-def restore_logical(
+@restore_app.command()
+def restore(
     database: str = typer.Argument(..., help="Database name to restore"),
-    backup_file: str = typer.Argument(..., help="Path to backup file on remote server"),
+    backup_file: str = typer.Argument(..., help="Backup filename"),
 ):
-    """Restore from logical backup."""
+    """Restore from backup."""
     check_config()
 
     if database not in config.databases:
@@ -238,59 +179,26 @@ def restore_logical(
 
 
 # List commands
-@list_app.command("walg")
-def list_walg():
-    """List available WAL-G backups."""
-    check_config()
-
-    try:
-        with get_executor() as executor:
-            walg_manager = WALGBackupManager(config)
-            backups = walg_manager.list_backups(executor)
-
-            if not backups:
-                console.print("[yellow]No WAL-G backups found.[/yellow]")
-                return
-
-            table = Table(title="WAL-G Backups", box=box.ROUNDED)
-            table.add_column("Name", style="cyan")
-            table.add_column("Timestamp", style="green")
-            table.add_column("Size", style="yellow")
-
-            for backup in backups:
-                table.add_row(
-                    backup.name,
-                    backup.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    backup.size or "Unknown",
-                )
-
-            console.print(table)
-
-    except ExecutorError as e:
-        console.print(f"[red]Executor Error: {e}[/red]")
-        raise typer.Exit(1)
-
-
-@list_app.command("logical")
-def list_logical():
-    """List available logical backups."""
+@list_app.command()
+def backups():
+    """List available backups."""
     check_config()
 
     try:
         with get_executor() as executor:
             logical_manager = LogicalBackupManager(config)
-            backups = logical_manager.list_backups(executor)
+            backup_list = logical_manager.list_backups(executor)
 
-            if not backups:
-                console.print("[yellow]No logical backups found.[/yellow]")
+            if not backup_list:
+                console.print("[yellow]No backups found.[/yellow]")
                 return
 
-            table = Table(title="Logical Backups", box=box.ROUNDED)
+            table = Table(title="Available Backups", box=box.ROUNDED)
             table.add_column("Name", style="cyan")
             table.add_column("Database", style="blue")
             table.add_column("Timestamp", style="green")
 
-            for backup in backups:
+            for backup in backup_list:
                 table.add_row(
                     backup.name,
                     backup.database or "Unknown",

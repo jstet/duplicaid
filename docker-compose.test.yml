@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: jstet/wald:1.0.2
+    image: postgres:18-alpine
     container_name: postgres
     hostname: postgres
     ports:
@@ -8,18 +8,11 @@ services:
     networks:
       - postgres
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: test
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: testpassword
-      WALG_S3_PREFIX: s3://test-bucket/test/pot/
-
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_ENDPOINT: http://minio:9000
-      AWS_S3_FORCE_PATH_STYLE: "true"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - walgdata:/var/log/wal-g
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
       interval: 10s
@@ -30,23 +23,37 @@ services:
         condition: service_healthy
 
   db-backup:
+    restart: unless-stopped
     container_name: db-backup
-    image: ghcr.io/tiredofit/docker-db-backup:4.1.21
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM public.ecr.aws/docker/library/postgres:18.0-alpine AS pg18
+
+        FROM ghcr.io/tiredofit/docker-db-backup:4.1.21
+        RUN apk add --no-cache libedit
+
+        # copy 18 binaries + libraries to the same paths in the final image
+        COPY --from=pg18 /usr/local/bin/psql     /usr/local/bin/psql
+        COPY --from=pg18 /usr/local/bin/pg_dump /usr/local/bin/pg_dump
+        COPY --from=pg18 /usr/local/bin/pg_restore /usr/local/bin/pg_restore
+        COPY --from=pg18 /usr/local/lib          /usr/local/lib
+
+        ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
     volumes:
       - backups:/backup
     environment:
       TIMEZONE: UTC
       CONTAINER_ENABLE_MONITORING: "FALSE"
       BACKUP_JOB_CONCURRENCY: 1
-      DEBUG_MODE: "TRUE"
 
       DB01_TYPE: postgres
       DB01_HOST: postgres
-      DB01_NAME: postgres
+      DB01_NAME: test
       DB01_USER: postgres
       DB01_PASS: testpassword
-      DB01_BACKUP_INTERVAL: 0
-      DB01_CLEANUP_TIME: 1440
+      DB01_BACKUP_INTERVAL: 1440  # 0  will do backups as fast as possible, 14400  once per day
       DB01_CHECKSUM: MD5
       DB01_COMPRESSION: BZ
       DB01_BACKUP_LOCATION: s3
@@ -102,7 +109,6 @@ services:
 
 volumes:
   postgres_data:
-  walgdata:
   minio_data:
   backups:
 

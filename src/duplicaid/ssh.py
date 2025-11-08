@@ -1,5 +1,3 @@
-"""SSH remote execution utilities for DuplicAid."""
-
 from typing import Optional, Tuple
 
 import paramiko
@@ -18,10 +16,10 @@ class SSHError(ExecutorError):
 
 
 class RemoteExecutor(BaseExecutor):
-    """SSH client wrapper for executing commands on remote server."""
+    """SSH client wrapper for executing commands on a remote server."""
 
     def __init__(self, config: Config):
-        self.config = config
+        super().__init__(config)
         self.client: Optional[paramiko.SSHClient] = None
 
     def __enter__(self):
@@ -66,17 +64,13 @@ class RemoteExecutor(BaseExecutor):
             self.client.close()
             self.client = None
 
-    def execute(self, command: str, show_command: bool = True) -> Tuple[str, str, int]:
-        """
-        Execute command on remote server.
-
-        Args:
-            command: Command to execute
-            show_command: Whether to display the command being executed
-
-        Returns:
-            Tuple of (stdout, stderr, exit_code)
-        """
+    def execute(
+        self,
+        command: str,
+        show_command: bool = True,
+        stdin: Optional[str] = None,
+    ) -> Tuple[str, str, int]:
+        """Execute command on remote server, now with stdin support."""
         if not self.client:
             raise SSHError("Not connected to remote server")
 
@@ -84,11 +78,17 @@ class RemoteExecutor(BaseExecutor):
             console.print(f"[dim]$ {command}[/dim]")
 
         try:
-            stdin, stdout, stderr = self.client.exec_command(command)
-            exit_code = stdout.channel.recv_exit_status()
+            # Get stdin, stdout, and stderr streams
+            stdin_pipe, stdout_pipe, stderr_pipe = self.client.exec_command(command)
 
-            stdout_text = stdout.read().decode("utf-8").strip()
-            stderr_text = stderr.read().decode("utf-8").strip()
+            # NEW: Handle stdin
+            if stdin:
+                stdin_pipe.write(stdin)
+                stdin_pipe.channel.shutdown_write()  # Signal that we're done writing
+
+            exit_code = stdout_pipe.channel.recv_exit_status()
+            stdout_text = stdout_pipe.read().decode("utf-8").strip()
+            stderr_text = stderr_pipe.read().decode("utf-8").strip()
 
             if exit_code != 0:
                 console.print(f"[red]Command failed with exit code {exit_code}[/red]")
@@ -100,95 +100,8 @@ class RemoteExecutor(BaseExecutor):
         except Exception as e:
             raise SSHError(f"Failed to execute command: {e}")
 
-    def docker_exec(
-        self, container: str, command: str, user: Optional[str] = None
-    ) -> Tuple[str, str, int]:
-        """
-        Execute command in Docker container.
-
-        Args:
-            container: Container name
-            command: Command to execute in container
-            user: User to run command as
-
-        Returns:
-            Tuple of (stdout, stderr, exit_code)
-        """
-        docker_command = "docker exec"
-        if user:
-            docker_command += f" -u {user}"
-        docker_command += f" {container} {command}"
-
-        return self.execute(docker_command)
-
-    def docker_exec_interactive(
-        self, container: str, command: str, stdin_data: str = None
-    ) -> Tuple[str, str, int]:
-        """
-        Execute interactive command in Docker container (e.g., for piping data).
-
-        Args:
-            container: Container name
-            command: Command to execute in container
-            stdin_data: Data to pipe to stdin
-
-        Returns:
-            Tuple of (stdout, stderr, exit_code)
-        """
-        docker_command = f"docker exec -i {container} {command}"
-
-        if stdin_data:
-            # For commands that need stdin, we'll use a different approach
-            full_command = f"echo '{stdin_data}' | {docker_command}"
-            return self.execute(full_command)
-        else:
-            return self.execute(docker_command)
-
-    def check_container_running(self, container: str) -> bool:
-        """
-        Check if a Docker container is running.
-
-        Args:
-            container: Container name
-
-        Returns:
-            True if container is running, False otherwise
-        """
-        stdout, stderr, exit_code = self.execute(
-            f"docker ps --filter name={container} --filter status=running --format '{{{{.Names}}}}'",
-            show_command=False,
-        )
-
-        return container in stdout.split("\n")
-
-    def get_container_status(self, container: str) -> Optional[str]:
-        """
-        Get container status.
-
-        Args:
-            container: Container name
-
-        Returns:
-            Container status or None if not found
-        """
-        stdout, stderr, exit_code = self.execute(
-            f"docker ps -a --filter name={container} --format '{{{{.Status}}}}'",
-            show_command=False,
-        )
-
-        if stdout:
-            return stdout.strip()
-        return None
-
     def file_exists(self, path: str) -> bool:
-        """
-        Check if file exists on remote server.
-
-        Args:
-            path: File path to check
-
-        Returns:
-            True if file exists, False otherwise
-        """
-        stdout, stderr, exit_code = self.execute(f"test -f {path}", show_command=False)
+        """Check if file exists on remote server."""
+        # The command exits with 0 if the file exists and is a regular file.
+        _, _, exit_code = self.execute(f"test -f {path}", show_command=False)
         return exit_code == 0

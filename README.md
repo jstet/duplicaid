@@ -6,16 +6,17 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-DuplicAid is a CLI tool for managing PostgreSQL backups via WAL-G (point-in-time recovery) and logical dumps. It provides a unified interface for creating, listing, and restoring backups from PostgreSQL instances running in Docker containers.
+DuplicAid is a CLI tool for managing PostgreSQL backups using SQL dumps. It provides a unified interface for creating, listing, and restoring backups from PostgreSQL instances running in Docker containers.
 
 The tool supports both local and remote execution modes.
 
-⚠️ The package depends on the image `jstet/wald`, which is a PostgreSQL container with WAL-G support and `tiredofit/docker-db-backup:4.1.21` for logical backups.
+⚠️ The package depends on `tiredofit/docker-db-backup:4.1.21` for backup operations.
+
 
 ## Features
 
-- **WAL-G Integration**: Create and restore point-in-time backups using WAL-G
-- **Logical Backups**: Create and restore database dumps via tiredofit/db-backup or pg_dump
+- **SQL Dumps**: Create and restore database backups using pg_dump/pg_restore
+- **S3 Integration**: Store and retrieve backups from S3-compatible storage
 - **Dual Execution Modes**: Manage backups locally or on remote servers via SSH
 
 ## Installation
@@ -63,7 +64,6 @@ duplicaid config init
 - **Container Names**: PostgreSQL and backup container names
 - **PostgreSQL Credentials**: Database user and password
 - **Paths**: Docker Compose file location
-- **Databases**: List of databases to manage
 
 ### Example Configurations
 
@@ -81,11 +81,19 @@ containers:
 postgres:
   user: postgres
   password: your_secure_password
+  host: postgres
+s3:
+  endpoint: https://s3.amazonaws.com
+  bucket: my-backups
+  path: postgres/backups
+  # access_key and secret_key can be set here or via env vars:
+  # AWS_ACCESS_KEY_ID / S3_ACCESS_KEY
+  # AWS_SECRET_ACCESS_KEY / S3_SECRET_KEY
 paths:
-  docker_compose: /home/correlaid/postgres/docker-compose.yml
+  docker_compose: /home/user/postgres/docker-compose.yml
 databases:
-  - funding_scraper
-  - u25
+  - myapp
+  - analytics
 ```
 
 **Local Mode:**
@@ -97,12 +105,34 @@ containers:
 postgres:
   user: postgres
   password: your_secure_password
+  host: postgres
+s3:
+  endpoint: http://localhost:9000
+  bucket: my-backups
+  path: postgres/backups
 paths:
   docker_compose: /home/user/postgres/docker-compose.yml
-databases:
-  - funding_scraper
-  - u25
 ```
+
+**S3 Credentials:**
+
+S3 credentials can be configured in two ways:
+
+1. **In config file** (less secure):
+   ```yaml
+   s3:
+     access_key: YOUR_ACCESS_KEY
+     secret_key: YOUR_SECRET_KEY
+   ```
+
+2. **Via environment variables** (recommended):
+   ```bash
+   export AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY
+   export AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
+   # or
+   export S3_ACCESS_KEY=YOUR_ACCESS_KEY
+   export S3_SECRET_KEY=YOUR_SECRET_KEY
+   ```
 
 ## Quick Start
 
@@ -118,110 +148,43 @@ databases:
 
 3. **Create a Backup**:
    ```bash
-   # WAL-G backup (all databases)
-   duplicaid backup walg
-
-   # Logical backup for specific database
-   duplicaid backup logical --db my_database
+   duplicaid backup create
    ```
 
 4. **List Backups**:
    ```bash
-   duplicaid list walg
+   duplicaid list backups
    ```
 
-## Commands Reference
+5. **Restore a Backup**:
+   ```bash
+   duplicaid restore mydb backup_file.sql.bz2
+   ```
 
-All commands support the `--config` flag to specify a custom config file location:
+## Backup Operations
 
-```bash
-duplicaid --config /path/to/config.yml <command>
-```
-
-### Configuration Management
-
-```bash
-# Initialize configuration (creates .duplicaid.yml in current directory)
-duplicaid config init
-
-# Show current configuration
-duplicaid config show
-
-# Use custom config file
-duplicaid --config /path/to/config.yml config show
-```
-
-### Backup Operations
-
-```bash
-# Create WAL-G backup (point-in-time)
-duplicaid backup walg
-
-# Create logical backup for all databases
-duplicaid backup logical
-
-# Create logical backup for specific database
-duplicaid backup logical --db database_name
-```
-
-### Restore Operations
-
-```bash
-# Restore from latest WAL-G backup
-duplicaid restore walg
-
-# Restore from specific WAL-G backup
-duplicaid restore walg --backup backup_20240101T120000Z
-
-# Point-in-time recovery
-duplicaid restore walg --to "2024-01-01 12:00:00"
-
-# Restore logical backup
-duplicaid restore logical database_name /path/to/backup.sql.gz
-```
+### Creating Backups
+- **Storage**: S3-compatible storage (compressed with bzip2)
+- **Scope**: All configured databases backed up automatically
+- **Format**: `pgsql_hostname_database_YYYYMMDD-HHMMSS.sql.bz2`
 
 ### Listing Backups
+Backups can be listed from:
+- S3-compatible storage (if configured)
+- Local backup directory (fallback)
 
-```bash
-# List WAL-G backups
-duplicaid list walg
-
-# List logical backups
-duplicaid list logical
-```
-
-### System Information
-
-```bash
-# Show system status
-duplicaid status
-
-# Discover databases
-duplicaid discover
-```
-
-
-## Backup Types
-
-### WAL-G Backups
-- **Type**: Physical backups with continuous WAL archiving
-- **Use Case**: Point-in-time recovery, full server restoration
-- **Storage**: S3-compatible storage
-- **Recovery**: Can restore to any point in time
-
-### Logical Backups
-- **Type**: SQL dumps using pg_dump
-- **Use Case**: Database-specific backups, cross-version compatibility
-- **Storage**: S3-compatible storage (compressed)
-- **Recovery**: Database-specific restoration
+### Restoring Backups
+- **Source**: Automatically downloads from S3 if not found locally
+- **Scope**: Database-specific restoration
+- **Compatibility**: Works across PostgreSQL versions
 
 ## Requirements
 
 ### Common Requirements
 - Python 3.12+
 - Docker and Docker Compose
-- PostgreSQL with WAL-G (e.g., jstet/wald:latest)
-- tiredofit/db-backup container for logical backups
+- PostgreSQL container
+- tiredofit/db-backup container for backup operations
 
 ### Remote Mode Additional Requirements
 - SSH access to remote server
@@ -289,7 +252,7 @@ Run specific test types:
 uv run pytest
 
 # Unit tests only
-uv run pytest -m unit
+uv run pytest -k "not integration"
 
 # Integration tests only
 uv run pytest -m integration
@@ -298,26 +261,6 @@ uv run pytest -m integration
 uv run pytest --cov=duplicaid
 ```
 
-### Integration Testing
-
-Integration tests require Docker containers. Use the Makefile for container management:
-
-```bash
-# Start test containers
-make setup-test
-
-# Run integration tests manually
-uv run pytest -m integration
-
-# Stop test containers
-make teardown-test
-
-# Run integration tests with automatic container management
-make test-integration
-
-# Clean up containers and Docker system
-make clean
-```
 
 ### Development Workflow
 
@@ -328,13 +271,10 @@ This project uses automated releases with semantic commits.
 # 1. Create feature branch
 git checkout -b feat/new-feature
 
-# 2. Make changes and commit
-make commit  # Interactive semantic commit
-
-# 3. Push and create PR
+# 2. Push and create PR
 git push origin feat/new-feature
 
-# 4. Merge PR → Auto-release to PyPI
+# 3. Merge PR → Auto-release to PyPI
 ```
 
 #### Semantic Commits
@@ -344,12 +284,6 @@ git commit -m "feat: add encryption"      # → minor release
 git commit -m "feat!: redesign API"       # → major release
 ```
 
-#### Commands
-```bash
-make commit       # Interactive semantic commit
-make bump-patch   # Manual version bump
-make release      # Full release process
-```
 
 #### Automation
 - **PRs**: Auto-test, lint, format
